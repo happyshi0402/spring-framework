@@ -100,7 +100,9 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 	 * is treated as a request parameter even if it isn't annotated, the
 	 * request parameter name is derived from the method parameter name.
 	 */
-	public RequestParamMethodArgumentResolver(@Nullable ConfigurableBeanFactory beanFactory, boolean useDefaultResolution) {
+	public RequestParamMethodArgumentResolver(@Nullable ConfigurableBeanFactory beanFactory,
+			boolean useDefaultResolution) {
+
 		super(beanFactory);
 		this.useDefaultResolution = useDefaultResolution;
 	}
@@ -218,10 +220,9 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 		Assert.state(name != null, "Unresolvable parameter name");
 
 		if (value == null) {
-			if (requestParam != null) {
-				if (!requestParam.required() || !requestParam.defaultValue().equals(ValueConstants.DEFAULT_NONE)) {
-					return;
-				}
+			if (requestParam != null &&
+					(!requestParam.required() || !requestParam.defaultValue().equals(ValueConstants.DEFAULT_NONE))) {
+				return;
 			}
 			builder.queryParam(name);
 		}

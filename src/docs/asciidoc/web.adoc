@@ -3,19 +3,22 @@
 :doc-root: https://docs.spring.io
 :api-spring-framework: {doc-root}/spring-framework/docs/{spring-version}/javadoc-api/org/springframework
 :toc: left
-:toclevels: 2
+:toclevels: 4
+:tabsize: 4
+:docinfo1:
 
 This part of the documentation covers support for Servlet stack, web applications built on the
 Servlet API and deployed to Servlet containers. Individual chapters include <<mvc,Spring MVC>>,
 <<mvc-view,View Technologies>>, <<mvc-cors,CORS Support>>, and <<websocket,WebSocket Support>>.
-The next section covers support for <<reactive-web.adoc#spring-reactive-web,reactive web>> applications.
+For reactive stack, web applications, go to <<web-reactive.adoc#spring-web-reactive,Web on Reactive Stack>>.
 
 include::web/webmvc.adoc[leveloffset=+1]
 
-include::web/webmvc-view.adoc[leveloffset=+1]
+include::web/webmvc-client.adoc[leveloffset=+1]
 
-include::web/webmvc-cors.adoc[leveloffset=+1]
+include::web/webmvc-test.adoc[leveloffset=+1]
 
 include::web/websocket.adoc[leveloffset=+1]
 
+include::web/integration.adoc[leveloffset=+1]
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,10 @@ import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+import org.springframework.validation.AbstractBindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -115,11 +115,9 @@ public class ModelAttributeMethodProcessor implements HandlerMethodArgumentResol
 		Assert.state(binderFactory != null, "ModelAttributeMethodProcessor requires WebDataBinderFactory");
 
 		String name = ModelFactory.getNameForParameter(parameter);
-		if (!mavContainer.isBindingDisabled(name)) {
-			ModelAttribute ann = parameter.getParameterAnnotation(ModelAttribute.class);
-			if (ann != null && !ann.binding()) {
-				mavContainer.setBindingDisabled(name);
-			}
+		ModelAttribute ann = parameter.getParameterAnnotation(ModelAttribute.class);
+		if (ann != null) {
+			mavContainer.setBinding(name, ann.binding());
 		}
 
 		Object attribute = null;
@@ -198,11 +196,22 @@ public class ModelAttributeMethodProcessor implements HandlerMethodArgumentResol
 			WebDataBinderFactory binderFactory, NativeWebRequest webRequest) throws Exception {
 
 		MethodParameter nestedParameter = parameter.nestedIfOptional();
-		Class<?> type = nestedParameter.getNestedParameterType();
+		Class<?> clazz = nestedParameter.getNestedParameterType();
 
-		Constructor<?> ctor = BeanUtils.findPrimaryConstructor(type);
+		Constructor<?> ctor = BeanUtils.findPrimaryConstructor(clazz);
 		if (ctor == null) {
-			throw new IllegalStateException("No primary constructor found for " + type.getName());
+			Constructor<?>[] ctors = clazz.getConstructors();
+			if (ctors.length == 1) {
+				ctor = ctors[0];
+			}
+			else {
+				try {
+					ctor = clazz.getDeclaredConstructor();
+				}
+				catch (NoSuchMethodException ex) {
+					throw new IllegalStateException("No primary or default constructor found for " + clazz, ex);
+				}
+			}
 		}
 
 		Object attribute = constructAttribute(ctor, attributeName, binderFactory, webRequest);
@@ -263,20 +272,32 @@ public class ModelAttributeMethodProcessor implements HandlerMethodArgumentResol
 				}
 			}
 			try {
-				args[i] = (value != null ?
-						binder.convertIfNecessary(value, paramType, new MethodParameter(ctor, i)) : null);
+				MethodParameter methodParam = new MethodParameter(ctor, i);
+				if (value == null && methodParam.isOptional()) {
+					args[i] = (methodParam.getParameterType() == Optional.class ? Optional.empty() : null);
+				}
+				else {
+					args[i] = binder.convertIfNecessary(value, paramType, methodParam);
+				}
 			}
 			catch (TypeMismatchException ex) {
+				ex.initPropertyName(paramName);
+				binder.getBindingErrorProcessor().processPropertyAccessException(ex, binder.getBindingResult());
 				bindingFailure = true;
-				binder.getBindingResult().addError(new FieldError(
-						binder.getObjectName(), paramNames[i], ex.getValue(), true,
-						new String[] {ex.getErrorCode()}, null, ex.getLocalizedMessage()));
+				args[i] = value;
 			}
 		}
 
 		if (bindingFailure) {
+			if (binder.getBindingResult() instanceof AbstractBindingResult) {
+				AbstractBindingResult result = (AbstractBindingResult) binder.getBindingResult();
+				for (int i = 0; i < paramNames.length; i++) {
+					result.recordFieldValue(paramNames[i], paramTypes[i], args[i]);
+				}
+			}
 			throw new BindException(binder.getBindingResult());
 		}
+
 		return BeanUtils.instantiateClass(ctor, args);
 	}
 

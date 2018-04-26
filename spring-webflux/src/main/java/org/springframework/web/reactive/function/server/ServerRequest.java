@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.springframework.http.HttpRange;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.http.codec.json.Jackson2CodecSupport;
+import org.springframework.http.codec.multipart.Part;
 import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.lang.Nullable;
@@ -45,6 +46,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyExtractor;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebSession;
+import org.springframework.web.util.UriBuilder;
 
 /**
  * Represents a server-side HTTP request, as handled by a {@code HandlerFunction}.
@@ -79,6 +81,16 @@ public interface ServerRequest {
 	URI uri();
 
 	/**
+	 * Return a {@code UriBuilderComponents}  from the URI associated with this
+	 * {@code ServerRequest}, while also overlaying with values from the headers
+	 * "Forwarded" (<a href="http://tools.ietf.org/html/rfc7239">RFC 7239</a>),
+	 * or "X-Forwarded-Host", "X-Forwarded-Port", and "X-Forwarded-Proto" if
+	 * "Forwarded" is not found.
+	 * @return a URI builder
+	 */
+	UriBuilder uriBuilder();
+
+	/**
 	 * Return the request path.
 	 */
 	default String path() {
@@ -101,6 +113,12 @@ public interface ServerRequest {
 	 * Return the cookies of this request.
 	 */
 	MultiValueMap<String, HttpCookie> cookies();
+
+	/**
+	 * Return the remote address where this request is connected to, if available.
+	 * @since 5.1
+	 */
+	Optional<InetSocketAddress> remoteAddress();
 
 	/**
 	 * Extract the body with the given {@code BodyExtractor}.
@@ -232,6 +250,27 @@ public interface ServerRequest {
 	 * Return the authenticated user for the request, if any.
 	 */
 	Mono<? extends Principal> principal();
+
+	/**
+	 * Return the form data from the body of the request if the Content-Type is
+	 * {@code "application/x-www-form-urlencoded"} or an empty map otherwise.
+	 *
+	 * <p><strong>Note:</strong> calling this method causes the request body to
+	 * be read and parsed in full and the resulting {@code MultiValueMap} is
+	 * cached so that this method is safe to call more than once.
+	 */
+	Mono<MultiValueMap<String, String>> formData();
+
+	/**
+	 * Return the parts of a multipart request if the Content-Type is
+	 * {@code "multipart/form-data"} or an empty map otherwise.
+	 *
+	 * <p><strong>Note:</strong> calling this method causes the request body to
+	 * be read and parsed in full and the resulting {@code MultiValueMap} is
+	 * cached so that this method is safe to call more than once.
+	 */
+	Mono<MultiValueMap<String, Part>> multipartData();
+
 
 
 	/**

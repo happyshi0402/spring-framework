@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,9 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.ResponseCookie;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 
 /**
  * @author Rossen Stoyanchev
@@ -97,10 +99,7 @@ public class ServerHttpResponseTests {
 	public void beforeCommitWithComplete() throws Exception {
 		ResponseCookie cookie = ResponseCookie.from("ID", "123").build();
 		TestServerHttpResponse response = new TestServerHttpResponse();
-		response.beforeCommit(() -> {
-			response.getCookies().add(cookie.getName(), cookie);
-			return Mono.empty();
-		});
+		response.beforeCommit(() -> Mono.fromRunnable(() -> response.getCookies().add(cookie.getName(), cookie)));
 		response.writeWith(Flux.just(wrap("a"), wrap("b"), wrap("c"))).block();
 
 		assertTrue(response.statusCodeWritten);
@@ -150,6 +149,11 @@ public class ServerHttpResponseTests {
 
 		public TestServerHttpResponse() {
 			super(new DefaultDataBufferFactory());
+		}
+
+		@Override
+		public <T> T getNativeResponse() {
+			throw new IllegalStateException("This is a mock. No running server, no native response.");
 		}
 
 		@Override

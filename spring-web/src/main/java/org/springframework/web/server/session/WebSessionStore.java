@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.springframework.web.server.session;
 
 import reactor.core.publisher.Mono;
@@ -40,8 +41,11 @@ public interface WebSessionStore {
 
 	/**
 	 * Return the WebSession for the given id.
+	 * <p><strong>Note:</strong> This method should perform an expiration check,
+	 * and if it has expired remove the session and return empty. This method
+	 * should also update the lastAccessTime of retrieved sessions.
 	 * @param sessionId the session to load
-	 * @return the session, or an empty {@code Mono}.
+	 * @return the session, or an empty {@code Mono} .
 	 */
 	Mono<WebSession> retrieveSession(String sessionId);
 
@@ -58,4 +62,5 @@ public interface WebSessionStore {
 	 * @return the session with the updated last access time
 	 */
 	Mono<WebSession> updateLastAccessTime(WebSession webSession);
+
 }

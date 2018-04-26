@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,15 +49,15 @@ import org.springframework.web.reactive.function.BodyInserters;
  */
 class DefaultClientRequestBuilder implements ClientRequest.Builder {
 
-	private final HttpMethod method;
-
-	private final URI url;
-
 	private final HttpHeaders headers = new HttpHeaders();
 
 	private final MultiValueMap<String, String> cookies = new LinkedMultiValueMap<>();
 
 	private final Map<String, Object> attributes = new LinkedHashMap<>();
+
+	private HttpMethod method;
+
+	private URI url;
 
 	private BodyInserter<?, ? super ClientHttpRequest> inserter = BodyInserters.empty();
 
@@ -67,6 +67,27 @@ class DefaultClientRequestBuilder implements ClientRequest.Builder {
 		this.url = url;
 	}
 
+	public DefaultClientRequestBuilder(ClientRequest other) {
+		this(other.method(), other.url());
+		headers(headers -> headers.addAll(other.headers()));
+		cookies(cookies -> cookies.addAll(other.cookies()));
+		attributes(attributes -> attributes.putAll(other.attributes()));
+		body(other.body());
+	}
+
+	@Override
+	public ClientRequest.Builder method(HttpMethod method) {
+		Assert.notNull(method, "'method' must not be null");
+		this.method = method;
+		return this;
+	}
+
+	@Override
+	public ClientRequest.Builder url(URI url) {
+		Assert.notNull(url, "'url' must not be null");
+		this.url = url;
+		return this;
+	}
 
 	@Override
 	public ClientRequest.Builder header(String headerName, String... headerValues) {

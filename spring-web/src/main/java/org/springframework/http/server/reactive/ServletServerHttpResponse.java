@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ package org.springframework.http.server.reactive;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.Map;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -35,7 +33,6 @@ import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.lang.Nullable;
@@ -47,7 +44,7 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 5.0
  */
-public class ServletServerHttpResponse extends AbstractListenerServerHttpResponse {
+class ServletServerHttpResponse extends AbstractListenerServerHttpResponse {
 
 	private final HttpServletResponse response;
 
@@ -84,26 +81,27 @@ public class ServletServerHttpResponse extends AbstractListenerServerHttpRespons
 	}
 
 
-	public HttpServletResponse getServletResponse() {
-		return this.response;
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T getNativeResponse() {
+		return (T) this.response;
 	}
 
 	@Override
 	protected void applyStatusCode() {
-		HttpStatus statusCode = this.getStatusCode();
+		Integer statusCode = getStatusCodeValue();
 		if (statusCode != null) {
-			getServletResponse().setStatus(statusCode.value());
+			this.response.setStatus(statusCode);
 		}
 	}
 
 	@Override
 	protected void applyHeaders() {
-		for (Map.Entry<String, List<String>> entry : getHeaders().entrySet()) {
-			String headerName = entry.getKey();
-			for (String headerValue : entry.getValue()) {
+		getHeaders().forEach((headerName, headerValues) -> {
+			for (String headerValue : headerValues) {
 				this.response.addHeader(headerName, headerValue);
 			}
-		}
+		});
 		MediaType contentType = getHeaders().getContentType();
 		if (this.response.getContentType() == null && contentType != null) {
 			this.response.setContentType(contentType.toString());
@@ -302,15 +300,6 @@ public class ServletServerHttpResponse extends AbstractListenerServerHttpRespons
 		}
 
 		@Override
-		protected void releaseData() {
-			if (logger.isTraceEnabled()) {
-				logger.trace("releaseData: " + this.currentData);
-			}
-			DataBufferUtils.release(this.currentData);
-			this.currentData = null;
-		}
-
-		@Override
 		protected boolean isDataEmpty(DataBuffer dataBuffer) {
 			return dataBuffer.readableByteCount() == 0;
 		}
@@ -333,11 +322,15 @@ public class ServletServerHttpResponse extends AbstractListenerServerHttpRespons
 				if (this.logger.isTraceEnabled()) {
 					this.logger.trace("written: " + written + " total: " + remaining);
 				}
-				return written == remaining;
+				if (written == remaining) {
+					if (logger.isTraceEnabled()) {
+						logger.trace("releaseData: " + dataBuffer);
+					}
+					DataBufferUtils.release(dataBuffer);
+					return true;
+				}
 			}
-			else {
-				return false;
-			}
+			return false;
 		}
 
 		@Override

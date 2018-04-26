@@ -49,12 +49,9 @@ task api(type: Javadoc) {
 	}
 }
 
-// Need https://github.com/Kotlin/dokka/issues/184 to be fixed to avoid "Can't find node by signature" log spam
 dokka {
 	dependsOn {
-		subprojects.collect {
-			it.tasks.getByName("jar")
-		}
+		tasks.getByName("api")
 	}
 	doFirst {
 		classpath = subprojects.collect { project -> project.jar.outputs.files.getFiles() }.flatten()
@@ -66,10 +63,12 @@ dokka {
 	outputDirectory = "$buildDir/docs/kdoc"
 
 	sourceDirs = files(subprojects.collect { project ->
-		project.sourceSets.main.kotlin.srcDirs
+		def kotlinDirs = project.sourceSets.main.kotlin.srcDirs.collect()
+		kotlinDirs -= project.sourceSets.main.java.srcDirs
 	})
 	externalDocumentationLink {
-		url = new URL("http://docs.spring.io/spring-framework/docs/${version}/javadoc-api/")
+		url = new URL("https://docs.spring.io/spring-framework/docs/$version/javadoc-api/")
+		packageListUrl = new File(buildDir, "api/package-list").toURI().toURL()
 	}
 	externalDocumentationLink {
 		url = new URL("http://projectreactor.io/docs/core/release/api/")
@@ -82,6 +81,11 @@ dokka {
 asciidoctor {
 	sources {
 		include '*.adoc'
+	}
+	resources {
+		from(sourceDir) {
+			include 'images/*', 'stylesheets/*', 'tocbot-3.0.2/*'
+		}
 	}
 	logDocuments = true
 	backends = ["html5"]
@@ -99,7 +103,7 @@ asciidoctor {
 			sectnums: '',
 			'source-highlighter': 'coderay@', // TODO switch to 'rouge' once supported by the html5 backend
 			stylesdir: 'stylesheets/',
-			stylesheet: 'spring.css',
+			stylesheet: 'main.css',
 			'spring-version': project.version
 
 }

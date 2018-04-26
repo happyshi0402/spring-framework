@@ -42,10 +42,11 @@ import org.springframework.util.Assert;
 public abstract class ExchangeFilterFunctions {
 
 	/**
-	 * Name of the {@link ClientRequest} attribute that contains the {@link Credentials}, as used by
-	 * {@link #basicAuthentication()}
+	 * Name of the {@link ClientRequest} attribute that contains the
+	 * {@link Credentials}, as used by {@link #basicAuthentication()}.
 	 */
-	public static final String BASIC_AUTHENTICATION_CREDENTIALS_ATTRIBUTE = ExchangeFilterFunctions.class.getName() + ".basicAuthenticationCredentials";
+	public static final String BASIC_AUTHENTICATION_CREDENTIALS_ATTRIBUTE =
+			ExchangeFilterFunctions.class.getName() + ".basicAuthenticationCredentials";
 
 
 	/**
@@ -90,10 +91,8 @@ public abstract class ExchangeFilterFunctions {
 				clientRequest -> credentialsFunction.apply(clientRequest).map(
 						credentials -> {
 							ClientRequest authorizedRequest = ClientRequest.from(clientRequest)
-									.headers(headers -> {
-										headers.set(HttpHeaders.AUTHORIZATION,
-												authorization(credentials));
-									})
+									.headers(headers -> headers.set(HttpHeaders.AUTHORIZATION,
+                                            authorization(credentials)))
 									.build();
 							return Mono.just(authorizedRequest);
 						})

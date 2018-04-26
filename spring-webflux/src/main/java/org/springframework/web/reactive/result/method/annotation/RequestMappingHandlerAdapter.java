@@ -43,7 +43,9 @@ import org.springframework.web.reactive.result.method.InvocableHandlerMethod;
 import org.springframework.web.server.ServerWebExchange;
 
 /**
- * Supports the invocation of {@code @RequestMapping} methods.
+ * Supports the invocation of
+ * {@link org.springframework.web.bind.annotation.RequestMapping @RequestMapping}
+ * handler methods.
  *
  * @author Rossen Stoyanchev
  * @since 5.0
@@ -163,7 +165,7 @@ public class RequestMappingHandlerAdapter implements HandlerAdapter, Application
 			this.argumentResolverConfigurer = new ArgumentResolverConfigurer();
 		}
 		if (this.reactiveAdapterRegistry == null) {
-			this.reactiveAdapterRegistry = new ReactiveAdapterRegistry();
+			this.reactiveAdapterRegistry = ReactiveAdapterRegistry.getSharedInstance();
 		}
 
 		this.methodResolver = new ControllerMethodResolver(this.argumentResolverConfigurer,

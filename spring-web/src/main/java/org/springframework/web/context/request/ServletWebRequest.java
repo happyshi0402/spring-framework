@@ -78,7 +78,7 @@ public class ServletWebRequest extends ServletRequestAttributes implements Nativ
 			"EEE MMM dd HH:mm:ss yyyy"
 	};
 
-	private static TimeZone GMT = TimeZone.getTimeZone("GMT");
+	private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
 
 	private boolean notModified = false;
 
@@ -289,11 +289,11 @@ public class ServletWebRequest extends ServletRequestAttributes implements Nativ
 		etag = padEtagIfNecessary(etag);
 		while (ifNoneMatch.hasMoreElements()) {
 			String clientETags = ifNoneMatch.nextElement();
-			Matcher eTagMatcher = ETAG_HEADER_VALUE_PATTERN.matcher(clientETags);
+			Matcher etagMatcher = ETAG_HEADER_VALUE_PATTERN.matcher(clientETags);
 			// Compare weak/strong ETags as per https://tools.ietf.org/html/rfc7232#section-2.3
-			while (eTagMatcher.find()) {
-				if (StringUtils.hasLength(eTagMatcher.group()) &&
-						etag.replaceFirst("^W/", "").equals(eTagMatcher.group(3))) {
+			while (etagMatcher.find()) {
+				if (StringUtils.hasLength(etagMatcher.group()) &&
+						etag.replaceFirst("^W/", "").equals(etagMatcher.group(3))) {
 					this.notModified = true;
 					break;
 				}

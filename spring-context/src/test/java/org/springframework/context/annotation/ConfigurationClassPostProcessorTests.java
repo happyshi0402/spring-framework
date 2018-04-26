@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2018 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor;
 import org.springframework.beans.factory.annotation.Lookup;
@@ -351,11 +352,24 @@ public class ConfigurationClassPostProcessorTests {
 		}
 	}
 
-	@Test
+	@Test  // SPR-15384
 	public void nestedConfigurationClassesProcessedInCorrectOrder() {
 		beanFactory.registerBeanDefinition("config", new RootBeanDefinition(ConfigWithOrderedNestedClasses.class));
 		ConfigurationClassPostProcessor pp = new ConfigurationClassPostProcessor();
 		pp.postProcessBeanFactory(beanFactory);
+
+		Foo foo = beanFactory.getBean(Foo.class);
+		assertTrue(foo instanceof ExtendedFoo);
+		Bar bar = beanFactory.getBean(Bar.class);
+		assertSame(foo, bar.foo);
+	}
+
+	@Test  // SPR-16734
+	public void innerConfigurationClassesProcessedInCorrectOrder() {
+		beanFactory.registerBeanDefinition("config", new RootBeanDefinition(ConfigWithOrderedInnerClasses.class));
+		ConfigurationClassPostProcessor pp = new ConfigurationClassPostProcessor();
+		pp.postProcessBeanFactory(beanFactory);
+		beanFactory.addBeanPostProcessor(new AutowiredAnnotationBeanPostProcessor());
 
 		Foo foo = beanFactory.getBean(Foo.class);
 		assertTrue(foo instanceof ExtendedFoo);
@@ -890,6 +904,43 @@ public class ConfigurationClassPostProcessorTests {
 		}
 	}
 
+	@Configuration
+	static class ConfigWithOrderedInnerClasses {
+
+		@Configuration
+		@Order(1)
+		class SingletonBeanConfig {
+
+			public SingletonBeanConfig(ConfigWithOrderedInnerClasses other) {
+			}
+
+			public @Bean Foo foo() {
+				return new Foo();
+			}
+
+			public @Bean Bar bar() {
+				return new Bar(foo());
+			}
+		}
+
+		@Configuration
+		@Order(2)
+		class OverridingSingletonBeanConfig {
+
+			public OverridingSingletonBeanConfig(ObjectProvider<SingletonBeanConfig> other) {
+				other.getObject();
+			}
+
+			public @Bean ExtendedFoo foo() {
+				return new ExtendedFoo();
+			}
+
+			public @Bean Bar bar() {
+				return new Bar(foo());
+			}
+		}
+	}
+
 	static class Foo {
 	}
 
@@ -1131,6 +1182,11 @@ public class ConfigurationClassPostProcessorTests {
 		@Bean
 		public RepositoryFactoryBean<Object> repoFactoryBean() {
 			return new RepositoryFactoryBean<>();
+		}
+
+		@Bean
+		public FactoryBean<Object> nullFactoryBean() {
+			return null;
 		}
 	}
 
